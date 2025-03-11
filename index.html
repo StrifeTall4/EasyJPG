@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HEIC to JPG</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Google Sans', sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            text-align: center;
+        }
+        h1 {
+            font-size: 150px; /* Adjusted to match the new header size */
+            color: #202124;
+            width: 100%;
+            max-width: 1200px; /* Adjusted to match the site's header width */
+            margin: 0 auto;
+            padding: 20px; /* Adjusted to match the site's header padding */
+            font-weight: 500; /* Adjusted to set the header weight */
+        }
+        .gradient-text {
+            background: linear-gradient(270deg, #ff6ec4, #7873f5, #4ade80);
+            background-size: 800% 800%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradient-animation 8s ease infinite;
+        }
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        #drop-area {
+            width: 80%;
+            max-width: 600px;
+            height: 200px;
+            border: 2px dashed #ccc;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            transition: background-color 0.3s ease;
+        }
+        #drop-area.hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        input[type="file"] {
+            display: none;
+        }
+        label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #file-list {
+            width: 80%;
+            max-width: 600px;
+            margin-top: 20px;
+            text-align: left;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background-color: #fff;
+        }
+        .file-item .file-name {
+            flex-grow: 1;
+        }
+        .file-item button {
+            background-color: red;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 5px 10px;
+            margin-left: 10px;
+        }
+        .file-item a {
+            font-weight: bold;
+            text-decoration: underline;
+            color: inherit; /* Inherit color from parent */
+            margin-left: 10px;
+        }
+        .info-text {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
+        }
+        .features {
+            margin-top: 20px;
+            text-align: left;
+        }
+        .features ul {
+            list-style: none;
+            padding: 0;
+        }
+        .features li {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .features li::before {
+            content: "✅";
+            margin-right: 10px;
+            color: green;
+        }
+        .info-list {
+            list-style: none;
+            padding: 0;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .info-list li {
+            margin-bottom: 10px;
+            font-size: 20px;
+        }
+        .info-list li::before {
+            content: "✅";
+            margin-right: 10px;
+            color: green;
+        }
+        .info-list a {
+            font-weight: bold;
+            text-decoration: underline;
+            color: inherit; /* Inherit color from parent */
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>HEIC to <span class="gradient-text">JPG</span></h1>
+    <ul class="info-list">
+        <li>Made by people like you.</li>
+        <li>Say thanks on our <a href="https://www.reddit.com" target="_blank">reddit page</a>.</li>
+        <li><a href="https://ko-fi.com/easyjpg" target="_blank">Buy Me a Coffee</a> to keep this website Ad-free.</li>
+    </ul>
+    <div id="drop-area">Drag and Drop Files Here</div>
+    <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="files" id="file-input" accept=".heic" multiple>
+        <label for="file-input">Choose files</label>
+        <button type="button" id="upload-button">Upload</button>
+    </form>
+    <div class="info-text">Max. 10 files per upload</div>
+    <div id="file-list"></div>
+    <div class="features hidden">
+        <ul>
+            <li>Ad-free</li>
+            <li>Chaos-free</li>
+            <li>Virus-free</li>
+        </ul>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropArea = document.getElementById('drop-area');
+            const fileInput = document.getElementById('file-input');
+            const fileList = document.getElementById('file-list');
+            const uploadButton = document.getElementById('upload-button');
+            const uploadForm = document.getElementById('upload-form');
+
+            let filesQueue = [];
+
+            fileInput.addEventListener('change', (e) => {
+                handleFiles(e.target.files);
+            });
+
+            dropArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropArea.classList.add('hover');
+            });
+
+            dropArea.addEventListener('dragleave', () => {
+                dropArea.classList.remove('hover');
+            });
+
+            dropArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropArea.classList.remove('hover');
+                handleFiles(e.dataTransfer.files);
+            });
+
+            uploadButton.addEventListener('click', () => {
+                if (filesQueue.length > 0) {
+                    const dataTransfer = new DataTransfer();
+                    filesQueue.forEach(file => dataTransfer.items.add(file));
+                    fileInput.files = dataTransfer.files;
+
+                    const formData = new FormData(uploadForm);
+                    fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        updateFileListWithDownloadLinks(data.files);
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+                } else {
+                    alert('No files to upload.');
+                }
+            });
+
+            function handleFiles(files) {
+                filesQueue = [...filesQueue, ...Array.from(files)];
+                renderFileList();
+            }
+
+            function renderFileList() {
+                fileList.innerHTML = ''; // Clear the file list display
+                filesQueue.forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+
+                    const fileName = document.createElement('span');
+                    fileName.className = 'file-name';
+                    fileName.textContent = file.name;
+
+                    const removeButton = document.createElement('button');
+                    removeButton.textContent = 'Remove';
+                    removeButton.addEventListener('click', () => {
+                        filesQueue.splice(index, 1);
+                        renderFileList();
+                    });
+
+                    fileItem.appendChild(fileName);
+                    fileItem.appendChild(removeButton);
+                    fileList.appendChild(fileItem);
+                });
+            }
+
+            function updateFileListWithDownloadLinks(uploadedFiles) {
+                uploadedFiles.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+
+                    const fileName = document.createElement('span');
+                    fileName.className = 'file-name';
+                    fileName.textContent = file.originalname;
+
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = `/uploads/${file.filename}`;
+                    downloadLink.download = '';
+                    downloadLink.textContent = 'Download';
+
+                    fileItem.appendChild(fileName);
+                    fileItem.appendChild(downloadLink);
+                    fileList.appendChild(fileItem);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
